@@ -1,0 +1,10 @@
+{
+  "headers": [
+    {
+      "source": "/scripts/(.*)\.jsx",
+      "headers": [
+        { "key": "Content-Type", "value": "text/javascript; charset=utf-8" }
+      ]
+    }
+  ]
+}
