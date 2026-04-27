@@ -207,13 +207,40 @@ function HeroAfter({ lang }) {
 /* ============================================================
    HERO DOUBLE — wrapper con video sticky compartido + ken burns
    ============================================================ */
+/* Video de fondo FIJO para los dos heroes. position: fixed + fade-out con scroll. */
+function HeroVideoFixed() {
+  const wrapRef = useRef(null);
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    let tween;
+    const setup = () => {
+      const heroAfter = document.querySelector('#hero-after');
+      if (!heroAfter) { setTimeout(setup, 60); return; }
+      tween = gsap.to(el, {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: heroAfter,
+          start: 'bottom 90%',
+          end: 'bottom 10%',
+          scrub: 0.4
+        }
+      });
+    };
+    setup();
+    return () => { if (tween) { tween.scrollTrigger?.kill(); tween.kill(); } };
+  }, []);
+  return (
+    <div className="hero-fixed-bg" ref={wrapRef} aria-hidden="true">
+      <video className="hero-fixed-bg__video" src="assets/hero-video.mp4" autoPlay loop muted playsInline />
+      <div className="hero-fixed-bg__overlay" />
+    </div>
+  );
+}
+
 function HeroDouble({ lang }) {
   return (
     <div className="hero-double">
-      <div className="hero-double__bg" aria-hidden="true">
-        <video className="hero-double__video" src="assets/hero-video.mp4" autoPlay loop muted playsInline />
-        <div className="hero-double__overlay" />
-      </div>
       <HeroBefore lang={lang} />
       <HeroAfter lang={lang} />
     </div>
@@ -223,4 +250,4 @@ function HeroDouble({ lang }) {
 // Alias por compatibilidad con código que pueda referirse al antiguo `Hero`
 const Hero = HeroDouble;
 
-Object.assign(window, { ScrollVideoBackground, ScrollFloat, SlidePanel, PillNav, Hero, HeroDouble, HeroBefore, HeroAfter });
+Object.assign(window, { ScrollVideoBackground, ScrollFloat, SlidePanel, PillNav, Hero, HeroDouble, HeroBefore, HeroAfter, HeroVideoFixed });

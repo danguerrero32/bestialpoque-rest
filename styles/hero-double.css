@@ -1,19 +1,20 @@
-/* FolgaoRest — wrapper de los dos Heroes con video sticky compartido */
+/* FolgaoRest — wrapper de los dos Heroes + video de fondo fijo (position: fixed) */
 
 .hero-double { position: relative; }
 
-/* Fondo único: video sticky que cubre los dos heroes y desaparece al salir del wrapper */
-.hero-double__bg {
-  position: sticky;
-  top: 0;
+/* Video FIJO en pantalla durante los dos heroes. Su opacity se controla con
+   GSAP ScrollTrigger desde core.jsx para hacer fade-out al salir del Hero 2. */
+.hero-fixed-bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
   height: 100vh;
-  width: 100%;
   overflow: hidden;
-  z-index: 0;
-  margin-bottom: -100vh; /* no ocupa espacio en el flujo */
+  z-index: 0; /* encima del canvas (.scroll-bg) durante los heroes */
   pointer-events: none;
+  will-change: opacity;
 }
-.hero-double__video {
+.hero-fixed-bg__video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -28,10 +29,10 @@
   100% { transform: scale(1.07); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-double__video { animation: none; transform: scale(1.03); }
+  .hero-fixed-bg__video { animation: none; transform: scale(1.03); }
 }
 
-.hero-double__overlay {
+.hero-fixed-bg__overlay {
   position: absolute;
   inset: 0;
   background:
@@ -39,14 +40,14 @@
     radial-gradient(ellipse at 50% 30%, rgba(139,69,19,0.18), transparent 60%);
 }
 
-/* Cada hero, dentro del wrapper, es transparente: el bg se ve a través */
+/* Cada hero, dentro del wrapper, es transparente: el video fijo se ve detrás */
 .hero-double > .hero {
   position: relative;
   z-index: 1;
   background: transparent;
   min-height: 100vh;
 }
-/* Anulamos el video y overlay propios de cada hero (los hereda del wrapper) */
+/* Anulamos el video y overlay propios de cada hero (los hereda del wrapper global) */
 .hero-double > .hero > .hero__video,
 .hero-double > .hero > .hero__overlay { display: none; }
 
@@ -104,13 +105,11 @@
 /* Reveals del Hero 2 (estado inicial; GSAP los anima al entrar en viewport) */
 .hero--after [data-reveal] { opacity: 0; transform: translateY(28px); will-change: opacity, transform; }
 
-/* Si JS no carga o se prefiere reducir movimiento, se ven todos */
 @media (prefers-reduced-motion: reduce) {
   .hero--after [data-reveal] { opacity: 1; transform: none; }
 }
 .no-js .hero--after [data-reveal] { opacity: 1; transform: none; }
 
-/* Móvil: chevron un poco más pequeño y subido */
 @media (max-width: 760px) {
   .hero-chevron { bottom: 24px; }
   .hero-chevron__icon { width: 22px; height: 26px; }
