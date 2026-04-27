@@ -27,7 +27,7 @@ function App() {
     <>
       <ScrollVideoBackground />
       <PillNav lang={lang} setLang={setLang} items={items} />
-      <Hero lang={lang} />
+      <HeroDouble lang={lang} />
       <VisualizeSection lang={lang} />
       <main className="content-stack">
         <PainSection lang={lang} />
