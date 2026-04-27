@@ -25,6 +25,7 @@ function App() {
 
   return (
     <>
+      <HeroVideoFixed />
       <ScrollVideoBackground />
       <PillNav lang={lang} setLang={setLang} items={items} />
       <HeroDouble lang={lang} />
