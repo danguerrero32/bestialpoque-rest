@@ -60,7 +60,7 @@ function ScrollFloat({ children, className = '', trigger = 'top 90%', end = 'top
     const tl = gsap.fromTo(chars, { yPercent: 80, opacity: 0, filter: 'blur(8px)' }, { yPercent: 0, opacity: 1, filter: 'blur(0px)', ease: 'power3.out', stagger: 0.02, scrollTrigger: { trigger: el, start: trigger, end, scrub: 0.8 } });
     return () => { tl.scrollTrigger?.kill(); tl.kill(); };
   }, [children, trigger, end]);
-  const wrap = (str) => [...String(str)].map((ch, i) => <span key={i} className="char" aria-hidden="true">{ch === ' ' ? ' ' : ch}</span>);
+  const wrap = (str) => [...String(str)].map((ch, i) => <span key={i} className="char" aria-hidden="true">{ch === ' ' ? ' ' : ch}</span>);
   return (<span ref={ref} className={`float-text ${className}`}>{Array.isArray(children) ? children.map((c, i) => <span key={i}>{wrap(c)}</span>) : wrap(children)}</span>);
 }
 
@@ -99,70 +99,128 @@ function PillNav({ lang, setLang, items }) {
     </nav>);
 }
 
-function Hero({ lang }) {
-  const [phase, setPhase] = React.useState(0);
+/* ============================================================
+   HERO 1 (Before) — "Cuando ellos se van a casa…"
+   ============================================================ */
+function HeroBefore({ lang }) {
   const T = {
-    es: { pre1: 'Antes era así:', title1: 'Cuando ellos se van a casa…', sub1: 'a ti todavía te queda una montaña de trabajo y asuntos que resolver por delante.', pre2: 'A partir de ahora:', title2: 'Tú terminas antes que nadie', sub2: <>Y te vas a tus cosas. A descansar.<br/>Tu negocio sigue funcionando, mejor que nunca.</>, add2: <>Di adiós a las tareas mecánicas.<br/>Las horas libres son mucho más reales.</>, cta1: 'Quiero saber más', cta2: 'Ver el piloto', cue: 'Sigue bajando', replay: 'Volver a ver', tension: 'Hasta que un día…' },
-    en: { pre1: 'It used to be like this:', title1: 'When they all go home…', sub1: 'you still have a mountain of work and things to sort out ahead of you.', pre2: 'From now on:', title2: 'You finish before anyone else', sub2: 'Rest. Relax. Your business keeps running, better than ever.', add2: 'Say goodbye to mechanical tasks. Free hours are much more real.', cta1: 'Tell me more', cta2: 'See the pilot', cue: 'Scroll', replay: 'Replay', tension: 'Until one day…' }
+    es: { pre: 'Antes era así:', title: 'Cuando ellos se van a casa…', sub: 'a ti todavía te queda una montaña de trabajo y asuntos que resolver por delante.', tension: 'Hasta que un día…', cue: 'Sigue bajando' },
+    en: { pre: 'It used to be like this:', title: 'When they all go home…', sub: 'you still have a mountain of work and things to sort out ahead of you.', tension: 'Until one day…', cue: 'Scroll' }
   }[lang];
-  React.useEffect(() => { if (phase >= 2) return; const t = setTimeout(() => setPhase(p => p + 1), phase === 0 ? 8500 : 1600); return () => clearTimeout(t); }, [phase]);
-  React.useEffect(() => { setPhase(0); }, [lang]);
-  const lockReleasedRef = React.useRef(false), phase2HoldConsumedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (lockReleasedRef.current) return;
-    const isHeroDominant = () => window.scrollY <= 40;
-    let cooldown = 0;
-    const advance = () => { const now = Date.now(); if (now < cooldown) return; cooldown = now + 700; setPhase(p => Math.min(2, p + 1)); };
-    const handleDownIntent = (preventFn) => {
-      if (lockReleasedRef.current || !isHeroDominant()) return;
-      if (phase < 2) { preventFn(); advance(); return; }
-      if (phase === 2 && !phase2HoldConsumedRef.current) { preventFn(); phase2HoldConsumedRef.current = true; cooldown = Date.now() + 800; return; }
-      lockReleasedRef.current = true;
-    };
-    const onWheel = (e) => { if (e.deltaY <= 0) return; if (Date.now() < cooldown) { if (!lockReleasedRef.current && isHeroDominant()) e.preventDefault(); return; } handleDownIntent(() => e.preventDefault()); };
-    let touchStartY = null;
-    const onTouchStart = (e) => { if (isHeroDominant()) touchStartY = e.touches[0].clientY; };
-    const onTouchMove = (e) => { if (lockReleasedRef.current || touchStartY == null || !isHeroDominant()) return; if (touchStartY - e.touches[0].clientY > 12) { handleDownIntent(() => e.preventDefault()); touchStartY = null; } };
-    const onKey = (e) => { if (!lockReleasedRef.current && isHeroDominant() && (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ')) handleDownIntent(() => e.preventDefault()); };
-    window.addEventListener('wheel', onWheel, { passive: false }); window.addEventListener('touchstart', onTouchStart, { passive: true }); window.addEventListener('touchmove', onTouchMove, { passive: false }); window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('wheel', onWheel); window.removeEventListener('touchstart', onTouchStart); window.removeEventListener('touchmove', onTouchMove); window.removeEventListener('keydown', onKey); };
-  }, [phase]);
-  const replay = () => setPhase(0);
+
+  // Fade-out suave del contenido al acercarse al final (transición al Hero 2)
+  const sectionRef = useRef(null);
+  useEffect(() => {
+    const el = sectionRef.current; if (!el) return;
+    const targets = el.querySelectorAll('.hero-phase, .hero-chevron');
+    const tween = gsap.to(targets, {
+      opacity: 0,
+      y: -20,
+      ease: 'none',
+      scrollTrigger: { trigger: el, start: 'bottom 90%', end: 'bottom 30%', scrub: 0.6 }
+    });
+    return () => { tween.scrollTrigger?.kill(); tween.kill(); };
+  }, [lang]);
+
+  const goNext = (e) => {
+    e.preventDefault();
+    document.querySelector('#hero-after')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <section className={`hero hero--phase-${phase}`} id="hero">
-      <video className="hero__video" src="assets/hero-video.mp4" autoPlay loop muted playsInline />
-      <div className="hero__overlay" />
+    <section className="hero hero--before" id="hero" ref={sectionRef}>
       <div className="hero__inner">
-        <div className="hero-stage">
-          <div className={`hero-phase hero-phase--before ${phase === 0 ? 'is-in' : 'is-out'}`} aria-hidden={phase !== 0}>
-            <span className="hero-phase__pre">{T.pre1}</span>
-            <h1 className="hero-phase__title">{T.title1}</h1>
-            <p className="hero-phase__sub">{T.sub1}</p>
+        <div className="hero-stage hero-stage--single">
+          <div className="hero-phase hero-phase--before">
+            <span className="hero-phase__pre">{T.pre}</span>
+            <h1 className="hero-phase__title">{T.title}</h1>
+            <p className="hero-phase__sub">{T.sub}</p>
             <p className="hero-phase__title hero-phase__title--after hero-phase__tension">{T.tension}</p>
           </div>
-          <div className={`hero-phase hero-phase--after ${phase === 2 ? 'is-in' : 'is-out'}`} aria-hidden={phase !== 2}>
-            <span className="hero-phase__pre" style={{ color: 'rgb(255,255,255)' }}>{T.pre2}</span>
-            <h1 className="hero-phase__title hero-phase__title--after">
-              <span className="line" style={{ fontSize: '52px' }}><ScrollFloat trigger="top 100%" end="top 50%">{T.title2.split(' ').slice(0, 2).join(' ')}</ScrollFloat></span>
-              <span className="line line--em"><ScrollFloat trigger="top 95%" end="top 45%">{T.title2.split(' ').slice(2).join(' ')}</ScrollFloat></span>
-            </h1>
-            <p className="hero-phase__sub">{T.sub2}</p>
-            <p className="hero-phase__add">{T.add2}</p>
-          </div>
-        </div>
-        <div className="hero__ctas">
-          <a className="btn btn--primary" href="#modulos" onClick={(e) => { e.preventDefault(); document.querySelector('#modulos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>{T.cta1} <span className="arrow">↓</span></a>
-          <a className="btn btn--ghost" href="https://lostrotamundosalpujarra.com" target="_blank" rel="noopener">{T.cta2} <span className="arrow">→</span></a>
-          {phase === 2 && <button className="btn btn--ghost btn--small" onClick={replay} aria-label={T.replay} style={{ padding: '10px 18px', fontSize: 11 }}>↺ {T.replay}</button>}
-        </div>
-        <div className="hero-progress" aria-hidden="true">
-          <span className={`hero-progress__dot ${phase >= 0 ? 'is-on' : ''}`} />
-          <span className={`hero-progress__dot ${phase >= 1 ? 'is-on' : ''}`} />
-          <span className={`hero-progress__dot ${phase >= 2 ? 'is-on' : ''}`} />
         </div>
       </div>
-      <div className="hero__scroll-cue">{T.cue}</div>
-    </section>);
+      <a className="hero-chevron" href="#hero-after" onClick={goNext} aria-label={T.cue}>
+        <span className="hero-chevron__label">{T.cue}</span>
+        <svg className="hero-chevron__icon" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <path d="M4 6 L12 14 L20 6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 16 L12 24 L20 16" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </a>
+    </section>
+  );
 }
 
-Object.assign(window, { ScrollVideoBackground, ScrollFloat, SlidePanel, PillNav, Hero });
+/* ============================================================
+   HERO 2 (After) — "Tú terminas antes que nadie"
+   ============================================================ */
+function HeroAfter({ lang }) {
+  const T = {
+    es: { pre: 'A partir de ahora:', title: 'Tú terminas antes que nadie', sub: <>Y te vas a tus cosas. A descansar.<br/>Tu negocio sigue funcionando, mejor que nunca.</>, add: <>Di adiós a las tareas mecánicas.<br/>Las horas libres son mucho más reales.</>, cta1: 'Quiero saber más', cta2: 'Ver el piloto' },
+    en: { pre: 'From now on:', title: 'You finish before anyone else', sub: <>Rest. Relax.<br/>Your business keeps running, better than ever.</>, add: <>Say goodbye to mechanical tasks.<br/>Free hours are much more real.</>, cta1: 'Tell me more', cta2: 'See the pilot' }
+  }[lang];
+
+  const sectionRef = useRef(null);
+  useEffect(() => {
+    const el = sectionRef.current; if (!el) return;
+    const items = Array.from(el.querySelectorAll('[data-reveal]'));
+    const tweens = items.map((item) => {
+      const order = parseFloat(item.dataset.reveal) || 0;
+      return gsap.fromTo(
+        item,
+        { opacity: 0, y: 28 },
+        {
+          opacity: 1, y: 0, duration: 1.0, ease: 'power3.out', delay: order,
+          scrollTrigger: { trigger: el, start: 'top 80%', toggleActions: 'play none none reverse' }
+        }
+      );
+    });
+    return () => tweens.forEach(t => { t.scrollTrigger?.kill(); t.kill(); });
+  }, [lang]);
+
+  const titleParts = String(T.title).split(' ');
+  const titleA = titleParts.slice(0, 2).join(' ');
+  const titleB = titleParts.slice(2).join(' ');
+
+  return (
+    <section className="hero hero--after" id="hero-after" ref={sectionRef}>
+      <div className="hero__inner">
+        <div className="hero-stage hero-stage--single">
+          <div className="hero-phase hero-phase--after">
+            <span className="hero-phase__pre" data-reveal="0" style={{ color: 'rgb(255,255,255)' }}>{T.pre}</span>
+            <h1 className="hero-phase__title hero-phase__title--after" data-reveal="0.15">
+              <span className="line" style={{ fontSize: '52px' }}>{titleA}</span>
+              <span className="line line--em">{titleB}</span>
+            </h1>
+            <p className="hero-phase__sub" data-reveal="0.4">{T.sub}</p>
+            <p className="hero-phase__add" data-reveal="0.6">{T.add}</p>
+          </div>
+        </div>
+        <div className="hero__ctas" data-reveal="1.0">
+          <a className="btn btn--primary" href="#modulos" onClick={(e) => { e.preventDefault(); document.querySelector('#modulos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>{T.cta1} <span className="arrow">↓</span></a>
+          <a className="btn btn--ghost" href="https://lostrotamundosalpujarra.com" target="_blank" rel="noopener">{T.cta2} <span className="arrow">→</span></a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   HERO DOUBLE — wrapper con video sticky compartido + ken burns
+   ============================================================ */
+function HeroDouble({ lang }) {
+  return (
+    <div className="hero-double">
+      <div className="hero-double__bg" aria-hidden="true">
+        <video className="hero-double__video" src="assets/hero-video.mp4" autoPlay loop muted playsInline />
+        <div className="hero-double__overlay" />
+      </div>
+      <HeroBefore lang={lang} />
+      <HeroAfter lang={lang} />
+    </div>
+  );
+}
+
+// Alias por compatibilidad con código que pueda referirse al antiguo `Hero`
+const Hero = HeroDouble;
+
+Object.assign(window, { ScrollVideoBackground, ScrollFloat, SlidePanel, PillNav, Hero, HeroDouble, HeroBefore, HeroAfter });
