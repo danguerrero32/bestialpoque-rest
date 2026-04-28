@@ -1,19 +1,76 @@
-/* FolgaoRest — wrapper de los dos Heroes + video de fondo fijo (position: fixed) */
+/* FolgaoRest — Hero doble: scroll-pin + vídeo fijo compartido
 
-.hero-double { position: relative; }
+   Arquitectura de capas (z-index):
+     0  .scroll-bg (canvas animado, fondo)
+     1  .hero-fixed-bg (vídeo, encima del canvas)
+     2  .hero-double (contenido; GSAP lo pone en position:fixed durante el pin)
+   100  .pill-nav (siempre encima de todo)
+*/
 
-/* Video FIJO en pantalla durante los dos heroes. Su opacity se controla con
-   GSAP ScrollTrigger desde core.jsx para hacer fade-out al salir del Hero 2. */
+/* ── Contenedor pinado ─────────────────────────────────────────
+   height: 100vh = la ventana visible mientras GSAP ejecuta el pin.
+   GSAP añade un spacer hermano con la altura de scroll total (≈ 380vh).
+   z-index: 2 para que el contenido quede encima del vídeo fijo (z-index:1)
+   al pasar a position:fixed durante el pin.
+──────────────────────────────────────────────────────────────── */
+.hero-double {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* Stage: rellena el contenedor y sirve de ancla para las fases */
+.hero-pinned__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Ambas fases ocupan exactamente el mismo espacio: inset: 0 */
+.hero-double .hero-phase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+}
+
+/* Fase 2 — todos los items empiezan invisibles.
+   GSAP los revela uno a uno según el scroll (data-reveal 0→4). */
+.hero-phase--after [data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  will-change: opacity, transform;
+}
+
+/* CTAs dentro de la fase 2 */
+.hero-double .hero__ctas {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 36px;
+}
+
+/* ── Vídeo fijo compartido ─────────────────────────────────────
+   z-index: 1  →  encima del canvas .scroll-bg (z-index: 0)
+               →  debajo del contenido .hero-double   (z-index: 2)
+──────────────────────────────────────────────────────────────── */
 .hero-fixed-bg {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  z-index: 0; /* encima del canvas (.scroll-bg) durante los heroes */
+  z-index: 1;
   pointer-events: none;
   will-change: opacity;
 }
+
 .hero-fixed-bg__video {
   position: absolute;
   inset: 0;
@@ -24,12 +81,10 @@
   animation: heroKenBurns 32s ease-in-out infinite alternate;
   filter: saturate(0.95) brightness(0.78) contrast(1.02);
 }
+
 @keyframes heroKenBurns {
-  0% { transform: scale(1.0); }
+  0%   { transform: scale(1.00); }
   100% { transform: scale(1.07); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-fixed-bg__video { animation: none; transform: scale(1.03); }
 }
 
 .hero-fixed-bg__overlay {
@@ -40,23 +95,12 @@
     radial-gradient(ellipse at 50% 30%, rgba(139,69,19,0.18), transparent 60%);
 }
 
-/* Cada hero, dentro del wrapper, es transparente: el video fijo se ve detrás */
-.hero-double > .hero {
-  position: relative;
-  z-index: 1;
-  background: transparent;
-  min-height: 100vh;
-}
-/* Anulamos el video y overlay propios de cada hero (los hereda del wrapper global) */
-.hero-double > .hero > .hero__video,
-.hero-double > .hero > .hero__overlay { display: none; }
-
-/* Hero 1: padding ajustado para dejar espacio al chevron abajo */
-.hero--before { padding-bottom: 120px; }
-.hero--after { padding-bottom: 80px; }
-
-/* Chevron doble animado al final del Hero 1 */
-.hero-chevron {
+/* ── Flecha «sigue bajando» ────────────────────────────────────
+   Affordance visual para invitar a hacer scroll.
+   Vive dentro de .hero-phase--before (position:absolute)
+   y se posiciona en el borde inferior de la pantalla.
+──────────────────────────────────────────────────────────────── */
+.hero-double .hero-chevron {
   position: absolute;
   left: 50%;
   bottom: 36px;
@@ -66,52 +110,52 @@
   align-items: center;
   gap: 10px;
   color: var(--amber);
-  cursor: pointer;
-  text-decoration: none;
-  z-index: 4;
+  pointer-events: none;
   opacity: 0;
   animation: chevronFadeIn 900ms ease 2400ms forwards;
 }
-.hero-chevron__label {
+
+.hero-double .hero-chevron__label {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.34em;
   color: var(--text-dim);
   text-transform: uppercase;
-  transition: color 320ms ease;
 }
-.hero-chevron__icon {
+
+.hero-double .hero-chevron__icon {
   width: 26px;
   height: 30px;
   color: var(--amber);
   filter: drop-shadow(0 0 14px rgba(232,200,118,0.18));
   animation: chevronBounce 2.4s cubic-bezier(0.65,0,0.35,1) infinite;
-  transition: transform 320ms ease, color 320ms ease;
 }
-.hero-chevron:hover .hero-chevron__label { color: var(--amber-soft); }
-.hero-chevron:hover .hero-chevron__icon { color: var(--amber-soft); transform: translateY(2px) scale(1.06); }
+
 @keyframes chevronFadeIn { to { opacity: 1; } }
+
 @keyframes chevronBounce {
   0%, 100% { transform: translateY(0); }
   20%      { transform: translateY(-3px); }
   45%      { transform: translateY(8px); }
   70%      { transform: translateY(0); }
 }
+
+/* ── Reduced motion ────────────────────────────────────────────
+   Desactiva animaciones CSS y expone todos los elementos.
+   Los inline-styles de GSAP se anulan con !important.
+──────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .hero-chevron { opacity: 1; animation: none; }
-  .hero-chevron__icon { animation: none; }
+  .hero-fixed-bg__video        { animation: none; transform: scale(1.03); }
+  .hero-phase--after [data-reveal] { opacity: 1 !important; transform: none !important; }
+  .hero-double .hero-chevron   { opacity: 1; animation: none; }
+  .hero-double .hero-chevron__icon { animation: none; }
 }
 
-/* Reveals del Hero 2 (estado inicial; GSAP los anima al entrar en viewport) */
-.hero--after [data-reveal] { opacity: 0; transform: translateY(28px); will-change: opacity, transform; }
+.no-js .hero-phase--after [data-reveal] { opacity: 1; transform: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  .hero--after [data-reveal] { opacity: 1; transform: none; }
-}
-.no-js .hero--after [data-reveal] { opacity: 1; transform: none; }
-
+/* ── Mobile ────────────────────────────────────────────────── */
 @media (max-width: 760px) {
-  .hero-chevron { bottom: 24px; }
-  .hero-chevron__icon { width: 22px; height: 26px; }
-  .hero--before { padding-bottom: 100px; }
+  .hero-double .hero-phase     { padding: 100px 16px 80px; }
+  .hero-double .hero-chevron   { bottom: 24px; }
+  .hero-double .hero-chevron__icon { width: 22px; height: 26px; }
 }

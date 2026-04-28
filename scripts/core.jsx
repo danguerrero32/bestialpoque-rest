@@ -100,154 +100,212 @@ function PillNav({ lang, setLang, items }) {
 }
 
 /* ============================================================
-   HERO 1 (Before) — "Cuando ellos se van a casa…"
+   VIDEO FIJO — solo renderiza; la lógica de scroll la gestiona
+   HeroDouble para mantener todo centralizado
    ============================================================ */
-function HeroBefore({ lang }) {
-  const T = {
-    es: { pre: 'Antes era así:', title: 'Cuando ellos se van a casa…', sub: 'a ti todavía te queda una montaña de trabajo y asuntos que resolver por delante.', tension: 'Hasta que un día…', cue: 'Sigue bajando' },
-    en: { pre: 'It used to be like this:', title: 'When they all go home…', sub: 'you still have a mountain of work and things to sort out ahead of you.', tension: 'Until one day…', cue: 'Scroll' }
-  }[lang];
-
-  // Fade-out suave del contenido al acercarse al final (transición al Hero 2)
-  const sectionRef = useRef(null);
-  useEffect(() => {
-    const el = sectionRef.current; if (!el) return;
-    const targets = el.querySelectorAll('.hero-phase, .hero-chevron');
-    const tween = gsap.to(targets, {
-      opacity: 0,
-      y: -20,
-      ease: 'none',
-      scrollTrigger: { trigger: el, start: 'bottom 90%', end: 'bottom 30%', scrub: 0.6 }
-    });
-    return () => { tween.scrollTrigger?.kill(); tween.kill(); };
-  }, [lang]);
-
-  const goNext = (e) => {
-    e.preventDefault();
-    document.querySelector('#hero-after')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  return (
-    <section className="hero hero--before" id="hero" ref={sectionRef}>
-      <div className="hero__inner">
-        <div className="hero-stage hero-stage--single">
-          <div className="hero-phase hero-phase--before">
-            <span className="hero-phase__pre">{T.pre}</span>
-            <h1 className="hero-phase__title">{T.title}</h1>
-            <p className="hero-phase__sub">{T.sub}</p>
-            <p className="hero-phase__title hero-phase__title--after hero-phase__tension">{T.tension}</p>
-          </div>
-        </div>
-      </div>
-      <a className="hero-chevron" href="#hero-after" onClick={goNext} aria-label={T.cue}>
-        <span className="hero-chevron__label">{T.cue}</span>
-        <svg className="hero-chevron__icon" viewBox="0 0 24 28" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <path d="M4 6 L12 14 L20 6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 16 L12 24 L20 16" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </a>
-    </section>
-  );
-}
-
-/* ============================================================
-   HERO 2 (After) — "Tú terminas antes que nadie"
-   ============================================================ */
-function HeroAfter({ lang }) {
-  const T = {
-    es: { pre: 'A partir de ahora:', title: 'Tú terminas antes que nadie', sub: <>Y te vas a tus cosas. A descansar.<br/>Tu negocio sigue funcionando, mejor que nunca.</>, add: <>Di adiós a las tareas mecánicas.<br/>Las horas libres son mucho más reales.</>, cta1: 'Quiero saber más', cta2: 'Ver el piloto' },
-    en: { pre: 'From now on:', title: 'You finish before anyone else', sub: <>Rest. Relax.<br/>Your business keeps running, better than ever.</>, add: <>Say goodbye to mechanical tasks.<br/>Free hours are much more real.</>, cta1: 'Tell me more', cta2: 'See the pilot' }
-  }[lang];
-
-  const sectionRef = useRef(null);
-  useEffect(() => {
-    const el = sectionRef.current; if (!el) return;
-    const items = Array.from(el.querySelectorAll('[data-reveal]'));
-    const tweens = items.map((item) => {
-      const order = parseFloat(item.dataset.reveal) || 0;
-      return gsap.fromTo(
-        item,
-        { opacity: 0, y: 28 },
-        {
-          opacity: 1, y: 0, duration: 1.0, ease: 'power3.out', delay: order,
-          scrollTrigger: { trigger: el, start: 'top 80%', toggleActions: 'play none none reverse' }
-        }
-      );
-    });
-    return () => tweens.forEach(t => { t.scrollTrigger?.kill(); t.kill(); });
-  }, [lang]);
-
-  const titleParts = String(T.title).split(' ');
-  const titleA = titleParts.slice(0, 2).join(' ');
-  const titleB = titleParts.slice(2).join(' ');
-
-  return (
-    <section className="hero hero--after" id="hero-after" ref={sectionRef}>
-      <div className="hero__inner">
-        <div className="hero-stage hero-stage--single">
-          <div className="hero-phase hero-phase--after">
-            <span className="hero-phase__pre" data-reveal="0" style={{ color: 'rgb(255,255,255)' }}>{T.pre}</span>
-            <h1 className="hero-phase__title hero-phase__title--after" data-reveal="0.15">
-              <span className="line" style={{ fontSize: '52px' }}>{titleA}</span>
-              <span className="line line--em">{titleB}</span>
-            </h1>
-            <p className="hero-phase__sub" data-reveal="0.4">{T.sub}</p>
-            <p className="hero-phase__add" data-reveal="0.6">{T.add}</p>
-          </div>
-        </div>
-        <div className="hero__ctas" data-reveal="1.0">
-          <a className="btn btn--primary" href="#modulos" onClick={(e) => { e.preventDefault(); document.querySelector('#modulos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>{T.cta1} <span className="arrow">↓</span></a>
-          <a className="btn btn--ghost" href="https://lostrotamundosalpujarra.com" target="_blank" rel="noopener">{T.cta2} <span className="arrow">→</span></a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ============================================================
-   HERO DOUBLE — wrapper con video sticky compartido + ken burns
-   ============================================================ */
-/* Video de fondo FIJO para los dos heroes. position: fixed + fade-out con scroll. */
 function HeroVideoFixed() {
-  const wrapRef = useRef(null);
-  useEffect(() => {
-    const el = wrapRef.current; if (!el) return;
-    let tween;
-    const setup = () => {
-      const heroAfter = document.querySelector('#hero-after');
-      if (!heroAfter) { setTimeout(setup, 60); return; }
-      tween = gsap.to(el, {
-        opacity: 0,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: heroAfter,
-          start: 'bottom 90%',
-          end: 'bottom 10%',
-          scrub: 0.4
-        }
-      });
-    };
-    setup();
-    return () => { if (tween) { tween.scrollTrigger?.kill(); tween.kill(); } };
-  }, []);
   return (
-    <div className="hero-fixed-bg" ref={wrapRef} aria-hidden="true">
-      <video className="hero-fixed-bg__video" src="assets/hero-video.mp4" autoPlay loop muted playsInline />
+    <div className="hero-fixed-bg" aria-hidden="true">
+      <video
+        className="hero-fixed-bg__video"
+        src="assets/hero-video.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
       <div className="hero-fixed-bg__overlay" />
     </div>
   );
 }
 
+/* ============================================================
+   HERO DOUBLE — contenedor pinado, transición 100% scroll
+
+   Estructura:
+     hero-double (pin target, height: 100vh)
+       hero-pinned__stage
+         hero-phase--before  ← Fase 1, visible al cargar
+         hero-phase--after   ← Fase 2, invisible hasta que scroll revela
+
+   Timeline GSAP (scrub: 1, end: +=280%):
+     0.00 → 0.25  hold: Hero 1 estático (usuario lee)
+     0.25 → 0.46  Hero 1 se funde y sube
+     0.46 → 1.00  Hero 2: 5 elementos aparecen uno a uno
+                  (eyebrow → título → subtítulo → tagline → botones)
+                  Pin se libera solo cuando el último elemento termina.
+   ============================================================ */
 function HeroDouble({ lang }) {
+  const wrapRef = useRef(null);
+
+  const T = {
+    es: {
+      pre1: 'Antes era así:',
+      title1: 'Cuando ellos se van a casa…',
+      sub1: 'a ti todavía te queda una montaña de trabajo y asuntos que resolver por delante.',
+      tension: 'Hasta que un día…',
+      cue: 'Sigue bajando',
+      pre2: 'A partir de ahora:',
+      title2a: 'Tú terminas',
+      title2b: 'antes que nadie',
+      sub2: (<>Y te vas a tus cosas. A descansar.<br />Tu negocio sigue funcionando, mejor que nunca.</>),
+      add2: (<>Di adiós a las tareas mecánicas.<br />Las horas libres son mucho más reales.</>),
+      cta1: 'Quiero saber más',
+      cta2: 'Ver el piloto',
+    },
+    en: {
+      pre1: 'It used to be like this:',
+      title1: 'When they all go home…',
+      sub1: 'you still have a mountain of work and things to sort out ahead of you.',
+      tension: 'Until one day…',
+      cue: 'Scroll',
+      pre2: 'From now on:',
+      title2a: 'You finish',
+      title2b: 'before anyone else',
+      sub2: (<>Rest. Relax.<br />Your business keeps running, better than ever.</>),
+      add2: (<>Say goodbye to mechanical tasks.<br />Free hours are much more real.</>),
+      cta1: 'Tell me more',
+      cta2: 'See the pilot',
+    },
+  }[lang];
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+
+    const phase1 = wrap.querySelector('.hero-phase--before');
+    // Elementos de Fase 2 ordenados por data-reveal (enteros 0–4)
+    const reveals = Array.from(wrap.querySelectorAll('[data-reveal]'))
+      .sort((a, b) => +a.dataset.reveal - +b.dataset.reveal);
+    const videoBg = document.querySelector('.hero-fixed-bg');
+
+    /* ── Timeline 100% scrubbed al scroll ───────────────────── */
+    const tl = gsap.timeline();
+
+    // 0.00 → 0.25 : hold (Hero 1 estático, usuario lee el texto)
+    // 0.25 → 0.46 : Hero 1 se funde hacia arriba
+    tl.to(phase1, { opacity: 0, y: -36, ease: 'power2.in', duration: 0.21 }, 0.25);
+
+    // 0.46 → 1.00 : Hero 2 — 5 elementos aparecen uno a uno
+    const n = reveals.length;
+    const slot = n > 0 ? 0.54 / n : 0.11;
+    reveals.forEach((el, i) => {
+      tl.fromTo(
+        el,
+        { opacity: 0, y: 28, filter: 'blur(6px)' },
+        { opacity: 1, y: 0, filter: 'blur(0px)', ease: 'power3.out', duration: slot * 0.72 },
+        0.46 + i * slot
+      );
+    });
+
+    /* ── Pin: 280vh de «historia» de scroll ─────────────────── */
+    const st = ScrollTrigger.create({
+      trigger: wrap,
+      pin: true,
+      scrub: 1.0,
+      start: 'top top',
+      end: '+=280%',
+      animation: tl,
+    });
+
+    /* ── Vídeo: fade-out al salir de la zona hero ────────────── */
+    let videoST;
+    if (videoBg) {
+      videoST = ScrollTrigger.create({
+        trigger: wrap,
+        start: 'top top',
+        end: '+=280%',
+        onLeave: () => gsap.to(videoBg, { opacity: 0, duration: 0.8, ease: 'power2.inOut' }),
+        onEnterBack: () => gsap.to(videoBg, { opacity: 1, duration: 0.5 }),
+      });
+    }
+
+    return () => {
+      st.kill();
+      tl.kill();
+      videoST?.kill();
+    };
+  }, [lang]);
+
   return (
-    <div className="hero-double">
-      <HeroBefore lang={lang} />
-      <HeroAfter lang={lang} />
+    <div className="hero-double" id="hero" ref={wrapRef}>
+      <div className="hero-pinned__stage">
+
+        {/* ── Fase 1 — Antes ──────────────────────────────── */}
+        <div className="hero-phase hero-phase--before">
+          <span className="hero-phase__pre">{T.pre1}</span>
+          <h1 className="hero-phase__title">{T.title1}</h1>
+          <p className="hero-phase__sub">{T.sub1}</p>
+          <p className="hero-phase__title hero-phase__title--after hero-phase__tension">
+            {T.tension}
+          </p>
+          {/* Affordance visual: invita a hacer scroll */}
+          <div className="hero-chevron" aria-hidden="true">
+            <span className="hero-chevron__label">{T.cue}</span>
+            <svg
+              className="hero-chevron__icon"
+              viewBox="0 0 24 28"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M4 6 L12 14 L20 6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M4 16 L12 24 L20 16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* ── Fase 2 — Después ────────────────────────────── */}
+        <div className="hero-phase hero-phase--after">
+          <span
+            className="hero-phase__pre"
+            data-reveal="0"
+            style={{ color: 'rgb(255,255,255)' }}
+          >
+            {T.pre2}
+          </span>
+          <h1 className="hero-phase__title hero-phase__title--after" data-reveal="1">
+            <span className="line" style={{ fontSize: '52px' }}>{T.title2a}</span>
+            <span className="line line--em">{T.title2b}</span>
+          </h1>
+          <p className="hero-phase__sub" data-reveal="2">{T.sub2}</p>
+          <p className="hero-phase__add" data-reveal="3">{T.add2}</p>
+          <div className="hero__ctas" data-reveal="4">
+            <a
+              className="btn btn--primary"
+              href="#modulos"
+              onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#modulos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              {T.cta1} <span className="arrow">↓</span>
+            </a>
+            <a
+              className="btn btn--ghost"
+              href="https://lostrotamundosalpujarra.com"
+              target="_blank"
+              rel="noopener"
+            >
+              {T.cta2} <span className="arrow">→</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
 
-// Alias por compatibilidad con código que pueda referirse al antiguo `Hero`
+/* Alias de compatibilidad */
 const Hero = HeroDouble;
 
-Object.assign(window, { ScrollVideoBackground, ScrollFloat, SlidePanel, PillNav, Hero, HeroDouble, HeroBefore, HeroAfter, HeroVideoFixed });
+Object.assign(window, {
+  ScrollVideoBackground,
+  ScrollFloat,
+  SlidePanel,
+  PillNav,
+  Hero,
+  HeroDouble,
+  HeroVideoFixed,
+});
